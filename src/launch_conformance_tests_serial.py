@@ -148,10 +148,12 @@ def launch_cukinia_tests(p, args):
     """
     # Get host date for NTP test
     current_date_utc = datetime.now().strftime("%Y-%m-%d_%H:%M")
+    gee_tests = os.getenv("GEE_TESTS", "")
     try:
         if args.no_reports:
             p.sendline(
                 f"CURRENT_DATE_UTC={current_date_utc} "
+                f'GEE_TESTS="{gee_tests}" '
                 "/tmp/conformance_tests/cukinia/cukinia "
                 "/tmp/conformance_tests/GEISA-EE-tests/cukinia.conf"
             )
@@ -161,6 +163,7 @@ def launch_cukinia_tests(p, args):
         else:
             p.sendline(
                 f"CURRENT_DATE_UTC={current_date_utc} "
+                f'GEE_TESTS="{gee_tests}" '
                 "/tmp/conformance_tests/cukinia/cukinia -f junitxml "
                 "-o /tmp/conformance_tests/GEISA-EE-tests/geisa-conformance-report.xml "
                 "/tmp/conformance_tests/GEISA-EE-tests/cukinia.conf"
