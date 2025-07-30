@@ -63,7 +63,7 @@ launch_gee_tests_with_report_ssh() {
 	echo ""
 	echo "Launching tests..."
 	SSH "CURRENT_DATE_UTC=${CURRENT_DATE_UTC} GEE_TESTS=\"${GEE_TESTS}\" /tmp/conformance_tests/cukinia/cukinia -f junitxml -o /tmp/conformance_tests/GEISA-EE-tests/geisa-ee-conformance-report.xml /tmp/conformance_tests/GEISA-EE-tests/cukinia.conf"
-	test_exit_code=$?
+	ee_test_exit_code=$?
 
 	echo ""
 	echo "Copying tests report on host"
@@ -73,7 +73,7 @@ launch_gee_tests_with_report_ssh() {
 		exit 1
 	}
 
-	export test_exit_code
+	export ee_test_exit_code
 }
 
 launch_gee_tests_without_report_ssh() {
@@ -87,9 +87,9 @@ launch_gee_tests_without_report_ssh() {
 	echo ""
 	echo "Launching tests..."
 	SSH "CURRENT_DATE_UTC=${CURRENT_DATE_UTC} GEE_TESTS=\"${GEE_TESTS}\" /tmp/conformance_tests/cukinia/cukinia /tmp/conformance_tests/GEISA-EE-tests/cukinia.conf"
-	test_exit_code=$?
+	ee_test_exit_code=$?
 
-	export test_exit_code
+	export ee_test_exit_code
 }
 
 launch_bandwidth_test_with_report_ssh() {
