@@ -69,7 +69,7 @@ Environment variables can also be used to configure the script:
 * `CONFORMACE_SCP_ARGS`: Additional arguments for the `scp` command
 * `CONFORMACE_SSH_ARGS`: Additional arguments for the `ssh` command
 * `GEE_TESTS`: Specify the list of GEISA EE tests name to run (default: all tests)
-The tests names correspond to the logging suite name defined in each test file.
+The tests names correspond to a part of the filename.
 Example: `GEE_TESTS="os_requirements_tests application_isolation"` will run only the `os_requirements_tests` and `application_isolation` tests.
 
 A xml and pdf report will be generated in the `reports` directory.
