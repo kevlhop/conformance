@@ -100,7 +100,7 @@ launch_bandwidth_test_with_report_ssh() {
 
 	bandwidth_test_exit_code=0
 
-	if [[ -z "${GEE_TESTS}" || " ${GEE_TESTS} " == *" connectivity_tests_bandwidth "* ]]; then
+	if [[ -z "${GEE_TESTS}" ]] || echo "${GEE_TESTS}" | grep -Eq "(^| )connectivity_tests_bandwidth($| )"; then
 		echo ""
 		echo "Launching bandwidth test..."
 		(sleep 5; iperf3 -c "${board_ip}" --logfile /tmp/iperf.log) &
