@@ -9,6 +9,7 @@
 #include "pb_decode.h"
 #include "pb_encode.h"
 #include "schemas/sensor.pb.h"
+#include <math.h>
 
 volatile bool running = true;
 volatile bool isConnected = false;
@@ -22,6 +23,7 @@ const int TIMEOUT_S = 5;
 struct sensor_test_ctx {
 	int test_result;
 	int sensors_count;
+	int sensor_id_requested;
 	GeisaSensorDescriptor *sensor;
 };
 
@@ -83,6 +85,274 @@ disconnect:
 }
 
 /**
+ * @brief Function to check the sensor response readings values for each
+ * requested sensor. This function checks for valid values in the sensor
+ * response readings.
+ *
+ * @param reading The sensor reading to be checked
+ * @param ctx The sensor test context containing information about the device
+ * and the test result
+ */
+static void check_sensor_response_readings_values(GeisaSensorReading *reading,
+						  struct sensor_test_ctx *ctx)
+{
+	for (int i = 0; i < reading->values_count; i++) {
+		if (reading->values[i].which_value ==
+		    GeisaSensorValue_double_value_tag) {
+			if (isnan(reading->values[i].value.double_value)) {
+				fprintf(
+				    stderr,
+				    "[Sensor] Sensor response double value is NaN for %s\n",
+				    reading->sensor_id);
+				ctx->test_result = EXIT_FAILURE;
+			}
+		} else if (reading->values[i].which_value ==
+			   GeisaSensorValue_int64_value_tag) {
+			// No specific check for int64 values
+		} else if (reading->values[i].which_value ==
+			   GeisaSensorValue_bool_value_tag) {
+			// No specific check for bool values
+		} else if (reading->values[i].which_value ==
+			   GeisaSensorValue_string_value_tag) {
+			if (reading->values[i].value.string_value[0] == '\0') {
+				fprintf(
+				    stderr,
+				    "[Sensor] Sensor response string value is empty for %s\n",
+				    reading->sensor_id);
+				ctx->test_result = EXIT_FAILURE;
+			}
+		} else {
+			fprintf(
+			    stderr,
+			    "[Sensor] Sensor response has unknown value type for %s\n",
+			    reading->sensor_id);
+			ctx->test_result = EXIT_FAILURE;
+		}
+	}
+}
+
+/**
+ * @brief Function to check the sensor response readings for each requested
+ * sensor. This function checks for the presence of required fields and valid
+ * values in the sensor response readings.
+ *
+ * @param response The sensor response message containing the readings
+ * @param ctx The sensor test context containing information about the device
+ * and the test result
+ */
+static void check_sensor_response_readings(GeisaSensorReadings_Rsp *response,
+					   struct sensor_test_ctx *ctx)
+{
+	for (int i = 0; i < response->readings_count; i++) {
+		fprintf(stderr,
+			"[Sensor] Checking sensor response for sensor_id %s\n",
+			response->readings[i].sensor_id);
+		if (response->readings[i].sensor_id[0] == '\0') {
+			fprintf(stderr,
+				"[Sensor] Sensor response missing sensor_id\n");
+			ctx->test_result = EXIT_FAILURE;
+		}
+		if (response->readings[i].timestamp_ms == 0) {
+			fprintf(stderr,
+				"[Sensor] Sensor response missing timestamp\n");
+			ctx->test_result = EXIT_FAILURE;
+		}
+		check_sensor_response_readings_values(&response->readings[i],
+						      ctx);
+		if (response->readings[i].has_unit) {
+			if (response->readings[i].unit[0] == '\0') {
+				fprintf(
+				    stderr,
+				    "[Sensor] Sensor response missing unit\n");
+				ctx->test_result = EXIT_FAILURE;
+			}
+		}
+		if (response->readings[i].has_quality) {
+			if (response->readings[i].quality[0] == '\0') {
+				fprintf(
+				    stderr,
+				    "[Sensor] Sensor response missing quality\n");
+				ctx->test_result = EXIT_FAILURE;
+			}
+		}
+		if (response->readings[i].has_status) {
+			if (response->readings[i].status[0] == '\0') {
+				fprintf(
+				    stderr,
+				    "[Sensor] Sensor response missing status\n");
+				ctx->test_result = EXIT_FAILURE;
+			}
+		}
+	}
+}
+
+/**
+ * @brief Callback function to check the sensor response message for each
+ * requested sensor. This function decodes the sensor response and checks for
+ * the presence of required fields and valid values.
+ *
+ * @param mosq The mosquitto client instance
+ * @param obj The user data object, which is a pointer to the sensor test
+ * context
+ * @param msg The MQTT message containing the sensor response
+ */
+static void
+check_sensor_request_each_sensor_message(struct mosquitto *mosq, void *obj,
+					 const struct mosquitto_message *msg)
+{
+	GeisaSensorReadings_Rsp response = GeisaSensorReadings_Rsp_init_default;
+	struct sensor_test_ctx *ctx = obj;
+	pb_istream_t istream;
+	bool status = false;
+	(void)mosq;
+
+	ctx->test_result = EXIT_SUCCESS;
+
+	istream = pb_istream_from_buffer(msg->payload, msg->payloadlen);
+	status = pb_decode(&istream, GeisaSensorReadings_Rsp_fields, &response);
+
+	if (!status) {
+		fprintf(stderr, "[Sensor] Error decoding sensor response\n");
+		ctx->test_result = EXIT_FAILURE;
+		goto disconnect;
+	}
+
+	if (response.has_status == false) {
+		fprintf(
+		    stderr,
+		    "[Sensor] Error: Sensor response missing status message\n");
+		ctx->test_result = EXIT_FAILURE;
+	}
+
+	if (check_geisa_status(&response.status, "Sensor") != EXIT_SUCCESS) {
+		ctx->test_result = EXIT_FAILURE;
+	}
+
+	if (response.readings_count != ctx->sensor_id_requested) {
+		fprintf(
+		    stderr,
+		    "[Sensor] Sensor response count does not match requested count\n");
+		ctx->test_result = EXIT_FAILURE;
+	}
+
+	check_sensor_response_readings(&response, ctx);
+
+disconnect:
+	pb_release(GeisaSensorReadings_Rsp_fields, &response);
+	fprintf(stdout, "[Sensor] test result: %d\n", ctx->test_result);
+	rr_disconnect = true;
+}
+
+/**
+ * @brief Function to send a sensor request message to the device under test
+ *
+ * @param mosq The mosquitto client instance
+ * @param request The sensor readings request message to be sent
+ * @return EXIT_SUCCESS if the request was sent successfully, EXIT_FAILURE if
+ * there was an error in sending the request or allocating memory for the
+ * request
+ */
+static int send_sensor_request(struct mosquitto *mosq,
+			       GeisaSensorReadings_Req *request)
+{
+	uint8_t *message = NULL;
+	size_t encoded_size = 0;
+	pb_ostream_t ostream;
+	bool status = false;
+	int return_code = 0;
+
+	status = pb_get_encoded_size(&encoded_size,
+				     GeisaSensorReadings_Req_fields, request);
+	if (!status) {
+		fprintf(
+		    stderr,
+		    "[Sensor] Error getting encoded size for sensor request\n");
+		return EXIT_FAILURE;
+	}
+	message = malloc(encoded_size);
+	if (message == NULL) {
+		fprintf(
+		    stderr,
+		    "[Sensor] Error allocating memory for sensor request\n");
+		return EXIT_FAILURE;
+	}
+	ostream = pb_ostream_from_buffer(message, encoded_size);
+	status = pb_encode(&ostream, GeisaSensorReadings_Req_fields, request);
+	if (!status) {
+		fprintf(stderr, "[Sensor] Error encoding sensor request\n");
+		free(message);
+		return EXIT_FAILURE;
+	}
+	return_code = api_request_response(
+	    mosq, "geisa/api/sensor-req/gapi-conformance-tests", encoded_size,
+	    message, "geisa/api/sensor-rsp/gapi-conformance-tests", 0);
+
+	free(message);
+	return return_code;
+}
+
+/**
+ * @brief Function to request each readable sensor from the device under test
+ *
+ * @param mosq The mosquitto client instance
+ * @param ctx The sensor test context containing information about the device
+ * @param request The sensor readings request message to be sent
+ * @return EXIT_SUCCESS if the request was sent successfully, EXIT_FAILURE if
+ * there was an error in sending the request or allocating memory for the
+ * request
+ */
+static int request_each_sensor_sensor_test(struct mosquitto *mosq,
+					   struct sensor_test_ctx *ctx,
+					   GeisaSensorReadings_Req *request)
+{
+	int return_code = EXIT_SUCCESS;
+	ctx->test_result = EXIT_SUCCESS;
+	ctx->sensor_id_requested = 0;
+	size_t len = 0;
+
+	mosquitto_message_callback_set(
+	    mosq, check_sensor_request_each_sensor_message);
+
+	request->sensor_id =
+	    malloc((size_t)ctx->sensors_count * sizeof(*request->sensor_id));
+	if (request->sensor_id == NULL) {
+		fprintf(stderr,
+			"Allocation failed for sensor_id request table\n");
+		return EXIT_FAILURE;
+	}
+	for (int i = 0; i < ctx->sensors_count; i++) {
+		len = strlen(ctx->sensor[i].sensor_id) + 1;
+		request->sensor_id[i] = malloc(len);
+		if (request->sensor_id[i] == NULL) {
+			fprintf(
+			    stderr,
+			    "[Sensor] Allocation failed for sensor_id string\n");
+			for (int j = 0; j < i; j++) {
+				free(request->sensor_id[j]);
+			}
+			free(request->sensor_id);
+			return EXIT_FAILURE;
+		}
+		if (ctx->sensor[i].supports_read) {
+			strncpy(request->sensor_id[i], ctx->sensor[i].sensor_id,
+				len);
+			ctx->sensor_id_requested++;
+		}
+	}
+	request->sensor_id_count = ctx->sensor_id_requested;
+	return_code = send_sensor_request(mosq, request);
+	if (return_code != EXIT_SUCCESS) {
+		fprintf(stderr, "[Sensor] Error sending sensor request\n");
+	}
+
+	for (int i = 0; i < ctx->sensors_count; i++) {
+		free(request->sensor_id[i]);
+	}
+	free(request->sensor_id);
+	return return_code;
+}
+
+/**
  * @brief Main function for sensor API tests, initializes MQTT communication,
  * sets appropriate message callback based on command line argument, sends
  * discovery request and sensor request to check sensor response message
@@ -99,9 +369,13 @@ int main(int argc, char *argv[])
 	struct mosquitto *mosq = NULL;
 	int return_code = 0;
 	time_t start = 0;
-	(void)argc;
-	(void)argv;
 
+	if (argc != 2) {
+		fprintf(stderr, "Usage: %s <sensor_test_type>\n", argv[0]);
+		fprintf(stderr, "sensor test available:\n"
+				"* request_each_sensor\n");
+		return EXIT_FAILURE;
+	}
 	struct sensor_test_ctx *ctx = calloc(1, sizeof(struct sensor_test_ctx));
 	if (!ctx) {
 		fprintf(stderr,
@@ -144,7 +418,19 @@ int main(int argc, char *argv[])
 		goto disconnect;
 	}
 
-	(void)request;
+	// Set running back to true after sending the discovery request as
+	// mosquitto publish callback set running to false after sending the
+	// message
+	running = true;
+
+	if (strcmp(argv[1], "request_each_sensor") == 0) {
+		return_code =
+		    request_each_sensor_sensor_test(mosq, ctx, &request);
+	} else {
+		fprintf(stderr, "Invalid sensor test type: %s\n", argv[1]);
+		return_code = EXIT_FAILURE;
+		goto disconnect;
+	}
 
 disconnect:
 	api_communication_deinit(mosq);
