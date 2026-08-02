@@ -6,3 +6,5 @@ gapi-conformance-tests.squashfs
 launch_gapi_test_app.sh
 data/
 venv/
+
+/build/conformance-map/
