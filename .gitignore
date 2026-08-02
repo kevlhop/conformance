@@ -8,3 +8,9 @@ data/
 venv/
 
 /build/conformance-map/
+
+/tools/conformance-map/.venv/
+
+/tools/conformance-map/src/*.egg-info/
+__pycache__/
+*.py[cod]
