@@ -14,7 +14,7 @@ from geisa_conformance_map import __version__
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the command-line parser."""
+    """Build the command-line parser"""
 
     parser = argparse.ArgumentParser(
         prog="geisa-conformance-map",
@@ -29,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the command-line interface."""
+    """Run the CLI interface"""
 
     parser = build_parser()
     parser.parse_args(argv)
