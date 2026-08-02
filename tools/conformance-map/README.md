@@ -76,6 +76,14 @@ geisa-conformance-map scaffold --pillar LEE
 - `tools/conformance-map/` contains the implementation and committed docs
 - `build/conformance-map/` contains generated output and is ignored by Git
 
+## Local setup
+
+Create the local development environment:
+
+```sh
+tools/conformance-map/setup-venv.sh
+source tools/conformance-map/.venv/bin/activate
+
 ## Status
 
 General structure and initial documentation are in place, but implementation
