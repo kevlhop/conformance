@@ -244,6 +244,72 @@ disconnect:
 }
 
 /**
+ * @brief Callback function to check the sensor response message for a sensor
+ * that is not present on the device under test. This function decodes the
+ * sensor response and checks for the presence of required fields and valid
+ * values.
+ *
+ * @param mosq The mosquitto client instance
+ * @param obj The user data object, which is a pointer to the sensor test
+ * context
+ * @param msg The MQTT message containing the sensor response
+ */
+static void
+check_sensor_not_present_sensor_message(struct mosquitto *mosq, void *obj,
+					const struct mosquitto_message *msg)
+{
+	GeisaSensorReadings_Rsp response = GeisaSensorReadings_Rsp_init_default;
+	struct sensor_test_ctx *ctx = obj;
+	pb_istream_t istream;
+	bool status = false;
+	(void)mosq;
+
+	ctx->test_result = EXIT_SUCCESS;
+
+	istream = pb_istream_from_buffer(msg->payload, msg->payloadlen);
+	status = pb_decode(&istream, GeisaSensorReadings_Rsp_fields, &response);
+
+	if (!status) {
+		fprintf(stderr, "[Sensor] Error decoding sensor response\n");
+		ctx->test_result = EXIT_FAILURE;
+		goto disconnect;
+	}
+
+	if (response.has_status == false) {
+		fprintf(
+		    stderr,
+		    "[Sensor] Error: Sensor response missing status message\n");
+		ctx->test_result = EXIT_FAILURE;
+	}
+
+	if (response.status.code !=
+	    GeisaStatusCode_GEISA_STATUS_CODE_RESOURCE_NOT_FOUND) {
+		fprintf(
+		    stderr,
+		    "[Sensor] Error: response should have status code resource not found.\n");
+		ctx->test_result = EXIT_FAILURE;
+	}
+
+	if (!response.status.message || !response.status.message[0]) {
+		fprintf(
+		    stderr,
+		    "[Sensor] Error: response missing status message information\n");
+		ctx->test_result = EXIT_FAILURE;
+	}
+
+	if (response.readings_count != 0) {
+		fprintf(stderr,
+			"[Sensor] Error: Sensor response count should be 0\n");
+		ctx->test_result = EXIT_FAILURE;
+	}
+
+disconnect:
+	pb_release(GeisaSensorReadings_Rsp_fields, &response);
+	fprintf(stdout, "[Sensor] test result: %d\n", ctx->test_result);
+	rr_disconnect = true;
+}
+
+/**
  * @brief Function to send a sensor request message to the device under test
  *
  * @param mosq The mosquitto client instance
@@ -288,6 +354,54 @@ static int send_sensor_request(struct mosquitto *mosq,
 	    message, "geisa/api/sensor-rsp/gapi-conformance-tests", 0);
 
 	free(message);
+	return return_code;
+}
+
+/**
+ * @brief Function to request a sensor that is not present on the device under
+ * test.
+ *
+ * @param mosq The mosquitto client instance
+ * @param ctx The sensor test context containing information about the device
+ * @param request The sensor readings request message to be sent
+ * @return EXIT_SUCCESS if the request was sent successfully, EXIT_FAILURE if
+ * there was an error in sending the request or allocating memory for the
+ * request
+ */
+static int request_not_present_sensor_test(struct mosquitto *mosq,
+					   struct sensor_test_ctx *ctx,
+					   GeisaSensorReadings_Req *request)
+{
+	int return_code = EXIT_SUCCESS;
+	ctx->test_result = EXIT_SUCCESS;
+	size_t len = 0;
+
+	mosquitto_message_callback_set(mosq,
+				       check_sensor_not_present_sensor_message);
+
+	request->sensor_id = malloc(sizeof(*request->sensor_id));
+	if (request->sensor_id == NULL) {
+		fprintf(stderr,
+			"Allocation failed for sensor_id request table\n");
+		return EXIT_FAILURE;
+	}
+	len = sizeof("not_present_sensor");
+	request->sensor_id[0] = malloc(len);
+	if (request->sensor_id[0] == NULL) {
+		fprintf(stderr,
+			"[Sensor] Allocation failed for sensor_id string\n");
+		free(request->sensor_id);
+		return EXIT_FAILURE;
+	}
+	strncpy(request->sensor_id[0], "not_present_sensor", len);
+	request->sensor_id_count = 1;
+	return_code = send_sensor_request(mosq, request);
+	if (return_code != EXIT_SUCCESS) {
+		fprintf(stderr, "[Sensor] Error sending sensor request\n");
+	}
+
+	free(request->sensor_id[0]);
+	free(request->sensor_id);
 	return return_code;
 }
 
@@ -373,7 +487,8 @@ int main(int argc, char *argv[])
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s <sensor_test_type>\n", argv[0]);
 		fprintf(stderr, "sensor test available:\n"
-				"* request_each_sensor\n");
+				"* request_each_sensor\n"
+				"* request_not_present_sensor_test\n");
 		return EXIT_FAILURE;
 	}
 	struct sensor_test_ctx *ctx = calloc(1, sizeof(struct sensor_test_ctx));
@@ -426,6 +541,9 @@ int main(int argc, char *argv[])
 	if (strcmp(argv[1], "request_each_sensor") == 0) {
 		return_code =
 		    request_each_sensor_sensor_test(mosq, ctx, &request);
+	} else if (strcmp(argv[1], "request_not_present_sensor_test") == 0) {
+		return_code =
+		    request_not_present_sensor_test(mosq, ctx, &request);
 	} else {
 		fprintf(stderr, "Invalid sensor test type: %s\n", argv[1]);
 		return_code = EXIT_FAILURE;
