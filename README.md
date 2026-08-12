@@ -1,5 +1,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![CI Conformance status](https://github.com/geisa/conformance/actions/workflows/ci-conformance.yml/badge.svg?branch=main)](https://github.com/geisa/conformance/actions/workflows/ci-conformance.yml)
+[![CI Conformance lint status](https://github.com/geisa/conformance/actions/workflows/ci-conformance-lint.yml/badge.svg?branch=main)](https://github.com/geisa/conformance/actions/workflows/ci-conformance-lint.yml)
+[![CI Conformance on-target status](https://github.com/geisa/conformance/actions/workflows/ci-conformance-on-target.yml/badge.svg?branch=main)](https://github.com/geisa/conformance/actions/workflows/ci-conformance-on-target.yml)
+[![CI Conformance map status](https://github.com/geisa/conformance/actions/workflows/ci-conformance-map.yml/badge.svg?branch=main)](https://github.com/geisa/conformance/actions/workflows/ci-conformance-map.yml)
 
 # GEISA Conformance - a GEISA validation framework
 
@@ -250,7 +252,7 @@ clang-tidy) and on target tests on each push.
 
 If you want to add a new target in the CI, add your runner in github settings
 with a label corresponding to the target and modify
-.github/workflows/ci-conformance.yml:
+.github/workflows/ci-conformance-on-target.yml:
 
 * To add ssh tests add the following code snippet in the `jobs` section:
 ```
@@ -259,19 +261,13 @@ on-target-tests-ssh-<target_name>:
     with:
         runner: <target_name>
         user: <target_user>
-    secrets:
-        target_ip: ${{ secrets.<target_ip_secret> }}
-        target_password: ${{ secrets.<target_ip_password> }}
-    needs: [shellcheck, pylint, black, clang-format, clang-tidy]
+        environment: <target_environment>
 ```
 with :
 * `<target_name>` being the name of your target (corresponding to the label
 you configured).
 * `<target_user>` being the user to connect to the target (optional, default: root).
-* `<target_ip_secret>` being the name of the secret containing the IP address
-of your target.
-* `<target_ip_password>` being the name of the secret containing the password
-of your target. (optional, if not provided, no password will be used for the SSH connection)
+* `<target_environment>` being the environment to use for the target, this environment will contain the required secrets to connect to the target.
 
 * To add serial tests add the following code snippet in the `jobs` section:
 ```
@@ -282,9 +278,8 @@ on-target-tests-serial-<target_name>:
         user: <target_user>
         target_tty: <target_tty>
         target_baudrate: <target_baudrate>
-    secrets:
-        target_password: ${{ secrets.<target_ip_password> }}
-    needs: [shellcheck, pylint, black, clang-format, clang-tidy, on-target-tests-ssh-<target_name>]
+        environment: <target_environment>
+    needs: [on-target-tests-ssh-<target_name>]
 ```
 with :
 * `<target_name>` being the name of your target (corresponding to the label
@@ -292,8 +287,7 @@ you configured).
 * `<target_user>` being the user to connect to the target (optional, default: root).
 * `<target_tty>` being the serial port of your target (e.g. /dev/ttyUSB0).
 * `<target_baudrate>` being the baudrate of your target (optional, default: 115200)
-* `<target_ip_password>` being the name of the secret containing the password
-of your target. (optional, if not provided, no password will be used for the serial connection)
+* `<target_environment>` being the environment to use for the target, this environment will contain the required secrets to connect to the target.
 
 ## API Launching script
 

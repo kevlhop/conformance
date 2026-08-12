@@ -28,13 +28,20 @@ jobs:
               with:
                 ref: ${{ github.event.pull_request.head.sha || github.sha }}
                 submodules: true
+                persist-credentials: false
+                # Allow unsafe checkout as secrets are used in the workflow are
+                # required to validate the PR changes.
+                # But an github environment is set to wait for a maintainer to
+                # allow the run of this workflow, giving the time to review the
+                # PR changes before running this workflow. 
+                allow-unsafe-pr-checkout: true
             - name: copy template file for launch_gapi_test_app.sh
               run: cp launch_gapi_test_app.sh.template launch_gapi_test_app.sh
             - name: Run on target tests with report generation using ssh
               run: |
                 cqfd init
                 cqfd run ./launch_conformance_tests.sh \
-                    --ip ${{secrets.target_ip}} \
+                    --ip ${{ secrets.target_ip }} \
                     --user ${{ inputs.user }} \
                     ${{ secrets.target_password && format('--password "{0}"', secrets.target_password) }}
             - name: Upload results
