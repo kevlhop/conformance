@@ -29,10 +29,17 @@ jobs:
         runs-on: ${{inputs.runner}}
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
               with:
                 ref: ${{ github.event.pull_request.head.sha || github.sha }}
                 submodules: true
+                persist-credentials: false
+                # Allow unsafe checkout as secrets used in the workflow are
+                # required to validate the PR changes.
+                # But an approval job is set to wait for a maintainer to allow
+                # the run of this workflow, giving the time to review the PR
+                # changes before running this workflow.
+                allow-unsafe-pr-checkout: true
             - name: copy template file for launch_gapi_test_app.sh
               run: cp launch_gapi_test_app.sh.template launch_gapi_test_app.sh
             - name: Run on target tests with report generation using serial
