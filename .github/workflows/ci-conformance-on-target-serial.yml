@@ -53,14 +53,14 @@ jobs:
                     ${{ secrets.target_password && format('--password "{0}"', secrets.target_password) }}
             - name: Upload results
               if: always()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: geisa-conformance-report-serial-${{inputs.runner}}
                   path: reports/geisa-conformance-report.pdf
                   if-no-files-found: error
             - name: Upload tests xml
               if: always()
-              uses: dorny/test-reporter@v2
+              uses: dorny/test-reporter@v3
               with:
                   name: Serial Tests
                   path: reports/*.xml
