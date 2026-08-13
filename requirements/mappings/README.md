@@ -5,7 +5,7 @@ Security Alliance (GEISA), a Series of LF Projects, LLC
 Licensed under the Apache License, Version 2.0. See LICENSE.
 -->
 
-# Test Mappings
+# Test Mappings  
 
 This directory stores approved links between GEISA requirements or contract
 rules and Cukinia tests.
