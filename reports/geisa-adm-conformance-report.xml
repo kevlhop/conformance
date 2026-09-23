@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="GEISA ADM  Conformance tests installation" package="GEISA ADM  Conformance tests installation" errors="0" tests="2"
+   id="0" hostname="klhopital" failures="0"
+   timestamp="2026-09-23T14:30:25" skipped="0" time="0">
+    <properties></properties>
+    <testcase classname="cukinia" name="Checking conformance tests installation" time="0">
+      <system-out><![CDATA[/home/klhopital/Documents/GEISA/tmp/conformance/src/cukinia/cukinia]]></system-out>
+    </testcase>
+    <testcase classname="cukinia" name="Checking conformance tests configuration file" time="0">
+    </testcase>
+      <system-out><![CDATA[]]></system-out>
+      <system-err><![CDATA[]]></system-err>
+  </testsuite>
+  <testsuite name="GEISA ADM  Conditions before package update" package="GEISA ADM  Conditions before package update" errors="0" tests="2"
+   id="1" hostname="klhopital" failures="0"
+   timestamp="2026-09-23T14:30:25" skipped="0" time="0">
+    <properties></properties>
+    <testcase classname="cukinia" name="Checking if UPDATE_STATE is INITIAL(0) before package update" time="0">
+    </testcase>
+    <testcase classname="cukinia" name="Checking if ACTIVATION_STATE is DISABLED(0) before package activation" time="0">
+    </testcase>
+      <system-out><![CDATA[]]></system-out>
+      <system-err><![CDATA[]]></system-err>
+  </testsuite>
+  <testsuite name="GEISA ADM  Conditions after package update" package="GEISA ADM  Conditions after package update" errors="0" tests="3"
+   id="2" hostname="klhopital" failures="0"
+   timestamp="2026-09-23T14:30:25" skipped="0" time="1">
+    <properties></properties>
+    <testcase classname="cukinia" name="Checking if package can be pushed to client" time="0">
+    </testcase>
+    <testcase classname="cukinia" name="Checking if UPDATE_STATE is changed to DELIVERED(3) after package update" time="0">
+    </testcase>
+    <testcase classname="cukinia" name="Checking if ACTIVATION_STATE is DISABLED(0) before package activation" time="0">
+    </testcase>
+      <system-out><![CDATA[]]></system-out>
+      <system-err><![CDATA[]]></system-err>
+  </testsuite>
+  <testsuite name="GEISA ADM  Conditions after package installation" package="GEISA ADM  Conditions after package installation" errors="0" tests="3"
+   id="3" hostname="klhopital" failures="0"
+   timestamp="2026-09-23T14:30:26" skipped="0" time="0">
+    <properties></properties>
+    <testcase classname="cukinia" name="Checking if package can be installed on client" time="0">
+    </testcase>
+    <testcase classname="cukinia" name="Checking if UPDATE_STATE is changed to INSTALLED(4) after package installation" time="0">
+    </testcase>
+    <testcase classname="cukinia" name="Checking if ACTIVATION_STATE is DISABLED(0) before package activation" time="0">
+    </testcase>
+      <system-out><![CDATA[]]></system-out>
+      <system-err><![CDATA[]]></system-err>
+  </testsuite>
+  <testsuite name="GEISA ADM  Conditions after package activation" package="GEISA ADM  Conditions after package activation" errors="0" tests="2"
+   id="4" hostname="klhopital" failures="0"
+   timestamp="2026-09-23T14:30:26" skipped="0" time="2">
+    <properties></properties>
+    <testcase classname="cukinia" name="Checking if package can be activated on client" time="0">
+    </testcase>
+    <testcase classname="cukinia" name="Checking if ACTIVATION_STATE is ACTIVATED(1) after package activation" time="0">
+    </testcase>
+      <system-out><![CDATA[]]></system-out>
+      <system-err><![CDATA[]]></system-err>
+  </testsuite>
+  <testsuite name="GEISA ADM  Conditions after package deactivation" package="GEISA ADM  Conditions after package deactivation" errors="0" tests="2"
+   id="5" hostname="klhopital" failures="0"
+   timestamp="2026-09-23T14:30:28" skipped="0" time="1">
+    <properties></properties>
+    <testcase classname="cukinia" name="Checking if package can be deactivated on client" time="0">
+    </testcase>
+    <testcase classname="cukinia" name="Checking if ACTIVATION_STATE is DEACTIVATED(0) after package deactivation" time="0">
+    </testcase>
+      <system-out><![CDATA[]]></system-out>
+      <system-err><![CDATA[]]></system-err>
+  </testsuite>
+  <testsuite name="GEISA ADM  Conditions after package uninstallation" package="GEISA ADM  Conditions after package uninstallation" errors="0" tests="2"
+   id="6" hostname="klhopital" failures="0"
+   timestamp="2026-09-23T14:30:29" skipped="0" time="0">
+    <properties></properties>
+    <testcase classname="cukinia" name="Checking if package can be uninstalled on client" time="0">
+    </testcase>
+    <testcase classname="cukinia" name="Checking if UPDATE_STATE is reset to INITIAL(0) after package uninstallation" time="0">
+    </testcase>
+      <system-out><![CDATA[]]></system-out>
+      <system-err><![CDATA[]]></system-err>
+  </testsuite>
+</testsuites>

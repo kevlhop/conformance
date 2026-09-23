@@ -1,0 +1,7 @@
+[PASS]  Checking if package can be installed on client
+[PASS]  Checking if UPDATE_STATE is changed to INSTALLED(4) after package installation
+[PASS]  Checking if ACTIVATION_STATE is DISABLED(0) before package activation
+--- GEISA ADM - Conditions after package activation ---
+Error: timed out
+GEISA ADM conformance tests: ran 16 tests, 6 failed, 0 skipped
+
